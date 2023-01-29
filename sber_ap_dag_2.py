@@ -180,40 +180,42 @@ def main():
 	]
 
 	list_of_hits_files = [i for i in os.listdir(jsons_path) if 'hits' in i]
+	if list_of_sessions_files:
 
-	first_sessions_file = f'{jsons_path}/{sorted(list_of_sessions_files, key=file_date)[0]}'
-	same_hits_file = f'{jsons_path}/{[i for i in list_of_hits_files if first_sessions_file[-15:] in i][0]}'
+		first_sessions_file = f'{jsons_path}/{sorted(list_of_sessions_files, key=file_date)[0]}'
+		same_hits_file = f'{jsons_path}/{[i for i in list_of_hits_files if first_sessions_file[-15:] in i][0]}'
 
-	sessions_file_name = os.path.basename(first_sessions_file)
-	hits_file_name = os.path.basename(same_hits_file)
+		sessions_file_name = os.path.basename(first_sessions_file)
+		hits_file_name = os.path.basename(same_hits_file)
 
-	sessions_df = s_pipeline(first_sessions_file)
-	hits_df = h_pipeline(same_hits_file)
+		sessions_df = s_pipeline(first_sessions_file)
+		hits_df = h_pipeline(same_hits_file)
 
-	try:
-		load2db(df=sessions_df, target_table='sessions')
-		os.rename(f'{jsons_path}/{sessions_file_name}',
-				  f'{sent_path}/{sessions_file_name}')
+		try:
+			load2db(df=sessions_df, target_table='sessions')
+			os.rename(f'{jsons_path}/{sessions_file_name}',
+					f'{sent_path}/{sessions_file_name}')
 
-		if not hits_df.empty:
+			if not hits_df.empty:
 
-			df = hits_df[hits_df.set_index(
-				['session_id1', 'session_id2', 'session_id3']).index.isin(
-					sessions_df.set_index(
-						['session_id1', 'session_id2', 'session_id3']).index)]
+				df = hits_df[hits_df.set_index(
+					['session_id1', 'session_id2', 'session_id3']).index.isin(
+						sessions_df.set_index(
+							['session_id1', 'session_id2', 'session_id3']).index)]
 
-			try:
-				load2db(df=df, target_table='hits')
+				try:
+					load2db(df=df, target_table='hits')
 
-			except Exception as ex:
-				print(ex)
+				except Exception as ex:
+					print(ex)
 
-		os.rename(f'{jsons_path}/{hits_file_name}',
-			f'{sent_path}/{hits_file_name}')
-	
-	except Exception as ex:
-		print(ex)
-
+			os.rename(f'{jsons_path}/{hits_file_name}',
+				f'{sent_path}/{hits_file_name}')
+		
+		except Exception as ex:
+			print(ex)
+	else:
+		print('Folder is empty!!!')
 args = {
     'owner': 'airflow',
     'start_date': dt.datetime(2022, 1, 29),
