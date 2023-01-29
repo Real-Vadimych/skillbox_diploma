@@ -1,2 +1,11 @@
 data
-.venv_diplom
+.venv_diplom/
+.ipynb_checkpoints/
+test.py
+testju.ipynb
+.idea/
+__pycache__/
+venv_diplom/
+.idea/dataSources.xml
+.idea/misc.xml
+.idea/skillbox_diploma.iml

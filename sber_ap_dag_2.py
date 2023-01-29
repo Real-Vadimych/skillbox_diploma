@@ -1,9 +1,20 @@
-import os
-import pandas as pd
+import datetime as dt
 import json
-from sqlalchemy import create_engine
+import os
+import sys
+from datetime import timedelta
+
+import pandas as pd
+from airflow.models import DAG
+from airflow.operators.python import PythonOperator
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
+from sqlalchemy import create_engine
+
+path = os.path.expanduser('/home/vvk/DataGripProjects/skillbox_diploma')
+os.environ['PROJECT_PATH'] = path
+
+sys.path.insert(0, path)
 
 
 def h_drop_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -137,13 +148,14 @@ def s_pipeline(json_file_path) -> None:
 
 
 
-# ======
+
+
 
 def main():
 
 	path = os.environ.get('PROJECT_PATH', '')
-	jsons_path = f'{path}data/jsons'
-	sent_path = f'{path}data/jsons/sent'
+	jsons_path = f'{path}/data/jsons'
+	sent_path = f'{path}/data/jsons/sent'
 
 
 	def load2db(df, target_table):
@@ -179,7 +191,7 @@ def main():
 	hits_df = h_pipeline(same_hits_file)
 
 	try:
-		load2db(df=sessions_df, target_table='sessions_test')
+		load2db(df=sessions_df, target_table='sessions')
 		os.rename(f'{jsons_path}/{sessions_file_name}',
 				  f'{sent_path}/{sessions_file_name}')
 
@@ -191,7 +203,7 @@ def main():
 						['session_id1', 'session_id2', 'session_id3']).index)]
 
 			try:
-				load2db(df=df, target_table='hits_test')
+				load2db(df=df, target_table='hits')
 
 			except Exception as ex:
 				print(ex)
@@ -202,14 +214,22 @@ def main():
 	except Exception as ex:
 		print(ex)
 
-	
-def pipeline() -> None:
-	
-	pipeline = Pipeline(steps=[
-		('main', FunctionTransformer(main))
-	])
-	print('Success!!!')
+args = {
+    'owner': 'airflow',
+    'start_date': dt.datetime(2022, 1, 29),
+    'retries': 10,
+    'retry_delay': dt.timedelta(minutes=2),
+    'depends_on_past': False,
+}
 
+with DAG(
+        dag_id='sber_autopodpiska_json_2_db',
+        schedule_interval="0 * * * *",
+        default_args=args,
+) as dag:
+    pipeline = PythonOperator(
+        task_id='pipeline',
+        python_callable=main,
+    )
 
-if __name__ == '__main__':
-	pipeline()
+    pipeline
